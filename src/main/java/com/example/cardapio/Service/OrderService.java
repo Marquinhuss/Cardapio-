@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 
 import com.example.cardapio.Model.DTO.OrderDTO;
 import com.example.cardapio.Model.Entity.Client;
+import com.example.cardapio.Model.Entity.Food;
 import com.example.cardapio.Model.Entity.Orders;
+import com.example.cardapio.Model.Exception.FoodNotFoundException;
 import com.example.cardapio.Repository.ClientRepository;
+import com.example.cardapio.Repository.FoodRepository;
 import com.example.cardapio.Repository.OrderRepository;
 
 @Service
@@ -21,6 +24,9 @@ public class OrderService {
 
     @Autowired
     private ClientRepository clientRepository;
+
+    @Autowired
+    private FoodRepository foodRepository;
 
     public List<OrderDTO> getAllOrders(){
         List<Orders> order = repository.findAll();
@@ -45,13 +51,25 @@ public class OrderService {
 
     public OrderDTO createOrder(OrderDTO newOrder){
         Orders order = new Orders(newOrder);
-        //if(order != null){
+        List<Food> foodsList = foodRepository.findAllById(order.getFoods_Id());
+        if(order.getFoods_Id() == null || foodsList.isEmpty()){
+            throw new FoodNotFoundException("Food not found");
+        }
+        Double totalValue = 0.0;
+
+        for (Food f : foodsList) {
+            Double foodValue = f.getPrice();
+            totalValue += foodValue;
+            
+        }
+
+        order.setTotalValue(totalValue);
+
         repository.save(order);
         Long orderId = repository.findById(order.getId()).get().getId();
         OrderDTO dto = new OrderDTO(order);
         dto.setId(orderId);
         return dto;
-        //} 
     }
 
     public OrderDTO updateOrder(OrderDTO orderDTO, Long id){
@@ -69,6 +87,7 @@ public class OrderService {
         return "Pedido deletado com sucesso!";
     }
 
+    
     public List<OrderDTO> getAllByClientId(Long clientId){
         Optional<Client> client = clientRepository.findById(clientId);
 
